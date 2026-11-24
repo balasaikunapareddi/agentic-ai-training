@@ -51,10 +51,7 @@ class TemplateAgent:
         steps: list[dict] = []
         reply = self.llm(SYSTEM_PROMPT, f"Question: {question}")
         for _ in range(3):
-            try:
-                parsed = json.loads(reply)
-            except json.JSONDecodeError:
-                return {"answer": reply.strip(), "steps": steps}
+            parsed = self._parse(reply)
             if "answer" in parsed:
                 return {"answer": parsed["answer"], "steps": steps}
             result = run_tool(parsed.get("tool", ""), parsed.get("args", {}))
@@ -65,6 +62,29 @@ class TemplateAgent:
                 'Reply with exactly one JSON object: {"answer": "<final answer>"}',
             )
         return {"answer": "I ran out of steps before answering.", "steps": steps}
+
+    @staticmethod
+    def _parse(reply: str) -> dict:
+        """Parse one model reply. Non-dict JSON (e.g. a bare list) is an
+        answer, not a crash; text that looks like a tool call but is not
+        valid JSON is reported as a parse error, not echoed as an answer."""
+        try:
+            parsed = json.loads(reply)
+        except json.JSONDecodeError:
+            start, end = reply.find("{"), reply.rfind("}")
+            if start == -1 or end == -1:
+                # No complete JSON object at all — but text that opens a tool
+                # call is still a malformed reply, not an answer.
+                if '"tool"' in reply or "'tool'" in reply:
+                    return {"answer": "Error: I could not parse the model's tool call as JSON."}
+                return {"answer": reply.strip()}
+            try:
+                parsed = json.loads(reply[start : end + 1])
+            except json.JSONDecodeError:
+                if '"tool"' in reply or "'tool'" in reply:
+                    return {"answer": "Error: I could not parse the model's tool call as JSON."}
+                return {"answer": reply.strip()}
+        return parsed if isinstance(parsed, dict) else {"answer": str(parsed)}
 
 
 def main() -> int:

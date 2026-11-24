@@ -43,7 +43,7 @@ def chat(system: str, user: str, model: str | None = None) -> str:
     for attempt in range(2):
         try:
             response = litellm.completion(
-                model=chosen, messages=messages, api_key=api_key()
+                model=chosen, messages=messages, api_key=api_key(), timeout=60
             )
             return str(response.choices[0].message.content or "").strip()
         except Exception as exc:  # noqa: BLE001 - retry transient provider errors
@@ -136,19 +136,41 @@ class StubLLM:
 
     @staticmethod
     def _synthesize(text: str) -> str:
-        """Answer from the retrieved context: pick the most overlapping sentence."""
+        """Answer from the retrieved context: pick the most overlapping sentence.
+
+        Every chunk in the context is prefixed ``[doc-id] ``; that tag is
+        carried onto the chosen sentence, so the answer always cites the
+        document its sentence actually came from. (Previously the tag only
+        survived when the winning sentence happened to be the first sentence
+        of its chunk — e.g. "The clinic is closed on Sundays." came back
+        with no citation at all.) The ``Sources: ...`` trailer the template
+        appends is not evidence, so it is dropped before scoring.
+        """
         from agentic_ai_training.retrieval import _tokens
 
         context = text.split("Context:", 1)[-1] if "Context:" in text else text
+        context = context.split("Sources:", 1)[0]
         question = text.split("Question:", 1)[-1].split("Context:", 1)[0].strip() if "Question:" in text else ""
         query_words = _tokens(question)
-        best, best_score = "", -1
-        for sentence in re.split(r"(?<=[.!])\s+", context):
-            score = len(query_words & _tokens(sentence))
-            if score > best_score:
-                best, best_score = sentence.strip(), score
+        parts = re.split(r"\[([a-z0-9-]+)\]\s*", context)
+        segments: list[tuple[str, str]] = []
+        if parts[0].strip():
+            segments.append(("", parts[0]))
+        for i in range(1, len(parts) - 1, 2):
+            segments.append((parts[i], parts[i + 1]))
+        best, best_score, best_tag = "", -1, ""
+        for tag, chunk in segments:
+            for sentence in re.split(r"(?<=[.!])\s+", chunk):
+                sentence = sentence.strip()
+                if not sentence:
+                    continue
+                score = len(query_words & _tokens(sentence))
+                if score > best_score:
+                    best, best_score, best_tag = sentence, score, tag
         if best_score <= 0:
             return "I couldn't find that in the clinic knowledge base."
+        if best_tag and f"[{best_tag}]" not in best:
+            return f"{best} [{best_tag}]"
         return best
 
     @staticmethod

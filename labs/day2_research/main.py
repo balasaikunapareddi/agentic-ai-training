@@ -3,8 +3,10 @@
 A researcher agent gathers facts from the clinic knowledge base; a writer
 agent turns those facts into a short brief. The agents are Google ADK
 ``LlmAgent``s wired as a ``SequentialAgent`` (see ``adk_agents.py``) — the
-framework owns the handoff, so the writer only ever sees the researcher's
-output, never the raw question. That is the pattern from
+framework owns the handoff, so in stub mode the writer only ever sees the
+researcher's output, never the raw question. (In live ADK mode the writer
+shares the session history, so it does see the topic — its instruction is
+to use only the researcher's findings. That is the contract to watch.) That is the pattern from
 ``agent-resolution-workflow`` (Google ADK multi-agent: a coordinator plus
 read-only sub-agents) and from ``agent-research-pipeline`` (research, then
 synthesis, with the handoff carrying the evidence).

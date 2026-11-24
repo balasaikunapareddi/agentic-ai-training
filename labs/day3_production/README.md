@@ -14,7 +14,8 @@
 
 `app.py` wraps the Day 3 (a) `RagService` with:
 
-- `X-API-Key` auth (`TRAINING_API_KEY`, default `training-demo-key`)
+- `X-API-Key` auth (`TRAINING_API_KEY`, default `training-demo-key`) on
+  `/chat`, `/chat/stream`, and `/metrics` (`/health` stays public)
 - an in-memory answer cache (repeat questions return `cached: true`)
 - `GET /metrics` — requests, cache hits, errors, rate-limited count, average latency
 - request-id + latency logging on every request
@@ -28,7 +29,8 @@ python main.py --live           # real model behind the API (needs GEMINI_API_KE
 ```
 
 ```bash
-curl http://127.0.0.1:8001/metrics
+curl http://127.0.0.1:8001/health
+curl http://127.0.0.1:8001/metrics -H 'X-API-Key: training-demo-key'
 curl -X POST http://127.0.0.1:8001/chat -H 'Content-Type: application/json' \
   -H 'X-API-Key: training-demo-key' \
   -d '{"question": "What are the clinic opening hours?"}'

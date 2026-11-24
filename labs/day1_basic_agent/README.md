@@ -3,7 +3,8 @@
 ## Learning goals
 
 - The agent loop: model decides → tool runs → result goes back to the model → model answers.
-- Tools as plain typed functions with a registry — the model only ever sees a name and a JSON schema.
+- Tools as plain typed functions with a registry — the model only ever sees
+  a name and a short description per tool.
 - The same loop in stub mode and live mode: only the reasoning changes.
 
 ## What you will build

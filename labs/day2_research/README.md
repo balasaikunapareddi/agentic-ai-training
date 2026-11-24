@@ -4,9 +4,11 @@
 
 - Splitting one big job into two small agents: a researcher that only
   gathers facts, and a writer that only writes from those facts.
-- The handoff is the contract: the writer never sees the raw question, only
-  the researcher's cited findings — so it cannot invent facts the researcher
-  did not find.
+- The handoff is the contract: in stub mode the writer never sees the raw
+  question, only the researcher's cited findings — so it cannot invent facts
+  the researcher did not find. (In live ADK mode the writer shares the
+  session history and does see the topic; the instruction to use only the
+  researcher's findings is the contract there.)
 - Google ADK as the orchestration layer: `SequentialAgent` runs the agents in
   order and passes the output along. You write agents, not plumbing.
 

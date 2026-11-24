@@ -72,7 +72,7 @@ r1 = c2.post("/chat", json=q, headers=h)
 assert r1.status_code == 200 and r1.json()["cached"] is False
 r2 = c2.post("/chat", json=q, headers=h)
 assert r2.json()["cached"] is True, "second identical question must be cached"
-m = c2.get("/metrics").json()
+m = c2.get("/metrics", headers=h).json()
 assert m["cache_hits"] >= 1 and m["requests"] >= 2, m
 print("day3_fastapi: health/chat/stream OK")
 print("day3_production: auth/cache/metrics OK", m)

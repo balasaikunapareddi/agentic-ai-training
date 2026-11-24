@@ -89,7 +89,7 @@ python3 ~/workspace/custom-connectors/custom.gemini/bin/run_live.py \
 
 | Check | Result |
 |---|---|
-| Unit tests (`pytest tests/`) | **11 passed** (stub mode) |
+| Unit tests (`pytest tests/`) | **24 passed** (stub mode) |
 | Smoke test (`scripts/smoke_test.py`) | **5/5 lab groups passed** (stub mode, no key) |
 | Live test (`scripts/live_test.py`, real Gemini `gemini-3.5-flash-lite`) | **ALL PASSED**: Day 1a 3/3 checks (131, 5 words, Paris), Day 1b 3/3 checks (8:00 AM, 555-0142, UnitedHealthcare) |
 | Day 2 research live (real ADK agents) | **Passed on retry**: first run hit Gemini 503, re-run after ~3 min produced a cited 3-section brief |
@@ -102,6 +102,18 @@ Two real bugs were found and fixed while verifying: LiteLLM 1.106.2 (pinned by
 document (the answer sentence already carries its own source tag — the
 append was removed).
 
+A fresh-eyes code review (2026-11-24) found and fixed nine more, with a test
+per fix (suite 11 → 24 tests): the SSE splitter re-added `.` to every sentence
+(`555-0142..`); `run_tool` let a non-`TypeError` tool exception crash the agent
+loop; the stub RAG answer lost its citation whenever the winning sentence was
+not its chunk's first; `/metrics` answered without an API key and the key
+compare was not timing-safe; `/chat/stream` bypassed the cache; a provider
+failure surfaced as an uncounted bare 500 (now 502 + counted, never cached);
+truncated tool-call JSON was echoed back as the "answer"; the template agent
+crashed on non-dict JSON; the review loop's NEEDS-FIX path was never exercised;
+and the live test's word-count check was vacuous (it matched the echoed
+question). The `llm.chat` call now also carries a 60 s timeout.
+
 ## Conventions (the standing rules, applied to every lab)
 
 - **System prompts live in a separate `prompts.py` per lab**, never inline.
@@ -113,8 +125,8 @@ append was removed).
   answers, so the loop, the tools, and the tests are exercisable with no
   key. Live mode changes only the reasoning, never the structure.
 - **Policy in code, not in prompts**: the review loop is capped at 2
-  rounds by a number in `main.py`; the tool registry only dispatches tools
-  that exist.
+  rounds by a number in `prompts.py` (`MAX_REVIEW_ROUNDS`, imported by
+  `main.py`); the tool registry only dispatches tools that exist.
 
 ## Honest limits
 

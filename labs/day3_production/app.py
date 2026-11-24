@@ -18,6 +18,7 @@ use a proper auth provider, Redis, and a metrics backend — see the README.
 
 from __future__ import annotations
 
+import hmac
 import sys
 import time
 import uuid
@@ -106,7 +107,8 @@ def create_app(live: bool = False) -> FastAPI:
     app.state.metrics = metrics
 
     def require_api_key(key: str | None = Depends(api_key_header)) -> str:
-        if key != expected_api_key():
+        # compare_digest (not ==) so a wrong key cannot be probed by timing.
+        if key is None or not hmac.compare_digest(key, expected_api_key()):
             metrics.errors += 1
             raise HTTPException(status_code=401, detail="Invalid or missing API key")
         return key
@@ -129,7 +131,9 @@ def create_app(live: bool = False) -> FastAPI:
         return {"status": "ok", "mode": "live" if live else "stub"}
 
     @app.get("/metrics")
-    def get_metrics():
+    def get_metrics(key: str = Depends(require_api_key)):
+        # Usage counters are authenticated like /chat: an unauthenticated
+        # caller should not be able to observe how busy the service is.
         return metrics.snapshot()
 
     @app.post("/chat", response_model=ChatResponse)
@@ -142,7 +146,13 @@ def create_app(live: bool = False) -> FastAPI:
             metrics.cache_hits += 1
             hit = cache[question]
             return ChatResponse(answer=hit.answer, sources=hit.sources, cached=True)
-        result = service.answer(question)
+        try:
+            result = service.answer(question)
+        except Exception:
+            # A provider failure is not a 500 from this service and must not
+            # be cached: report it as 502 and count it, so /metrics shows it.
+            metrics.errors += 1
+            raise HTTPException(status_code=502, detail="Model provider failed; try again later")
         response = ChatResponse(answer=result.answer, sources=result.sources, cached=False)
         cache[question] = response
         return response
@@ -152,15 +162,18 @@ def create_app(live: bool = False) -> FastAPI:
         if not metrics.check_rate_limit(key):
             metrics.rate_limited += 1
             raise HTTPException(status_code=429, detail="Rate limit exceeded: 10 requests/minute")
-        result = service.answer(request.question)
-
-        def chunks():
-            for sentence in result.answer.split(". "):
-                sentence = sentence.strip()
-                if sentence:
-                    yield f"data: {sentence}.\n\n"
-            yield "data: [DONE]\n\n"
-
-        return StreamingResponse(chunks(), media_type="text/event-stream")
+        question = request.question.strip()
+        if question in cache:
+            metrics.cache_hits += 1
+            return StreamingResponse(
+                _day3a.sse_chunks(cache[question].answer), media_type="text/event-stream"
+            )
+        try:
+            result = service.answer(question)
+        except Exception:
+            metrics.errors += 1
+            raise HTTPException(status_code=502, detail="Model provider failed; try again later")
+        cache[question] = ChatResponse(answer=result.answer, sources=result.sources, cached=False)
+        return StreamingResponse(_day3a.sse_chunks(result.answer), media_type="text/event-stream")
 
     return app

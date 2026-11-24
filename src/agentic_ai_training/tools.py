@@ -53,3 +53,5 @@ def run_tool(name: str, args: dict) -> str:
         return str(entry["function"](**args))
     except TypeError as exc:
         return f"Error: bad arguments for tool '{name}': {exc}"
+    except Exception as exc:  # noqa: BLE001 - a tool must never crash the agent loop
+        return f"Error: tool '{name}' failed: {exc}"

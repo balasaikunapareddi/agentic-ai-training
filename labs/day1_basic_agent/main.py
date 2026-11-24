@@ -63,10 +63,19 @@ class BasicAgent:
         except json.JSONDecodeError:
             start, end = reply.find("{"), reply.rfind("}")
             if start == -1 or end == -1:
+                # No complete JSON object at all — but text that opens a tool
+                # call is still a malformed reply, not an answer.
+                if '"tool"' in reply or "'tool'" in reply:
+                    return {"answer": "Error: I could not parse the model's tool call as JSON."}
                 return {"answer": reply.strip()}
             try:
                 parsed = json.loads(reply[start : end + 1])
             except json.JSONDecodeError:
+                # Text that looks like a tool call but is not valid JSON is
+                # a malformed model reply, not an answer: say so loudly
+                # instead of handing the raw JSON back as the answer.
+                if '"tool"' in reply or "'tool'" in reply:
+                    return {"answer": "Error: I could not parse the model's tool call as JSON."}
                 return {"answer": reply.strip()}
         return parsed if isinstance(parsed, dict) else {"answer": str(parsed)}
 

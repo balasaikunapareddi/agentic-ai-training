@@ -1,7 +1,7 @@
 """System prompts for the Day 2 collaborative lab (four agents).
 
 Planner → researcher → writer → reviewer, with the reviewer able to send
-the draft back once. Each prompt states one job and its input contract;
+the draft back at most twice (MAX_REVIEW_ROUNDS = 2). Each prompt states one job and its input contract;
 the review loop lives in code (``main.py``), not in a prompt — that is the
 policy-as-code pattern from ``agent-support-resolution``: the number of
 review rounds is a number in code, not a hope in a prompt.

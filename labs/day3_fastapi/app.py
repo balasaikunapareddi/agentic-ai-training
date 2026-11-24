@@ -13,6 +13,7 @@ once at startup and reused across requests.
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -25,6 +26,32 @@ from pydantic import BaseModel
 from agentic_ai_training.llm import get_llm
 from agentic_ai_training.retrieval import load_documents, retrieve
 from prompts import SYSTEM_PROMPT, USER_TEMPLATE
+
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def sse_chunks(answer: str):
+    """Split *answer* into SSE events, one sentence per ``data:`` line.
+
+    The sentence terminator stays with its sentence (it is never re-added,
+    so an answer ending in ``.`` does not come out as ``..``), and newlines
+    inside the answer are flattened, so one event is always exactly one
+    ``data:`` line — a multi-line model reply cannot break the event stream.
+    """
+    text = " ".join((answer or "").split())
+    if text:
+        sentences = [s.strip() for s in _SENTENCE_END.split(text) if s.strip()]
+        merged: list[str] = []
+        for sentence in sentences:
+            # A trailing "[doc-id]" citation belongs to the sentence before
+            # it, not in an event of its own.
+            if re.fullmatch(r"\[[^\]]+\]", sentence) and merged:
+                merged[-1] = f"{merged[-1]} {sentence}"
+            else:
+                merged.append(sentence)
+        for sentence in merged:
+            yield f"data: {sentence}\n\n"
+    yield "data: [DONE]\n\n"
 
 
 class ChatRequest(BaseModel):
@@ -75,14 +102,6 @@ def create_app(live: bool = False) -> FastAPI:
     @app.post("/chat/stream")
     def chat_stream(request: ChatRequest):
         result = service.answer(request.question)
-
-        def chunks():
-            for sentence in result.answer.split(". "):
-                sentence = sentence.strip()
-                if sentence:
-                    yield f"data: {sentence}.\n\n"
-            yield "data: [DONE]\n\n"
-
-        return StreamingResponse(chunks(), media_type="text/event-stream")
+        return StreamingResponse(sse_chunks(result.answer), media_type="text/event-stream")
 
     return app
