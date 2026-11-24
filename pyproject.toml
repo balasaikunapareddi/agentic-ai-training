@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-ai-training"
+version = "0.1.0"
+description = "Hands-on Agentic AI training in the spirit of Vinay Kumar's 3-day course, built from real portfolio agents: day-wise labs from a basic tool-using agent and RAG, through multi-agent research and planning, to a production FastAPI deployment — every lab runnable in one command."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    "litellm",
+    "pydantic",
+    "fastapi",
+    "uvicorn",
+    "httpx",
+    "mcp",  # LiteLLM's completion path imports it; google-adk pins litellm < 1.107
+    "google-adk[extensions]",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

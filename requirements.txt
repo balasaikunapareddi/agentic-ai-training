@@ -1,0 +1,8 @@
+litellm
+pydantic
+fastapi
+uvicorn
+httpx
+mcp
+google-adk[extensions]
+pytest
