@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "agentic-ai-training"
 version = "0.1.0"
-description = "Hands-on Agentic AI training in the spirit of Vinay Kumar's 3-day course, built from real portfolio agents: day-wise labs from a basic tool-using agent and RAG, through multi-agent research and planning, to a production FastAPI deployment — every lab runnable in one command."
+description = "Hands-on Agentic AI training built as a 3-day course from real portfolio agents: day-wise labs from a basic tool-using agent and RAG, through multi-agent research and planning, to a production FastAPI deployment — every lab runnable in one command."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"

@@ -1,6 +1,6 @@
 # agentic-ai-training
 
-**Hands-on Agentic AI training in the spirit of Vinay Kumar's 3-day course, built from real portfolio agents: day-wise labs from a basic tool-using agent and RAG, through multi-agent research and planning, to a production FastAPI deployment — every lab runnable in one command.**
+**Hands-on Agentic AI training built as a 3-day course from real portfolio agents: day-wise labs from a basic tool-using agent and RAG, through multi-agent research and planning, to a production FastAPI deployment — every lab runnable in one command.**
 
 ## The pain
 
@@ -150,8 +150,7 @@ Copy `templates/agent_template.py`, follow the checklist in
 
 ## Acknowledgements
 
-The 3-day shape follows Vinay Kumar's
-[Agentic_AI_Training](https://github.com/VinayKDH/Agentic_AI_Training)
-course (Day 1 foundations incl. multi-tool RAG, Day 2 multi-agent research
-and collaboration, Day 3 FastAPI production deployment). The labs themselves
-are built from Bala's own agents listed in the table above.
+The course follows a 3-day shape (Day 1 foundations incl. multi-tool RAG,
+Day 2 multi-agent research and collaboration, Day 3 FastAPI production
+deployment). The labs themselves are built from Bala's own agents listed
+in the table above.
